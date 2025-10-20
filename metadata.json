@@ -1,0 +1,5 @@
+{
+  "name": "Excel CIFA Summarizer",
+  "description": "An interactive web application to process and summarize Bill of Materials (BOM) data from multiple Excel files, replicating the functionality of a Python script. Select a folder to begin processing.",
+  "requestFramePermissions": []
+}
