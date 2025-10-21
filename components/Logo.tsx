@@ -22,9 +22,9 @@ export const Logo: React.FC<LogoProps> = ({ className, alt = "Nesson CIFA Summar
 
   return (
     <img
-      src="logo.png"
+      src="https://nessoncable.com/img/logo.png"
       alt={alt}
-      className={className}
+      className={`${className || ''} transition-all duration-300`}
       onError={() => setHasError(true)}
     />
   );

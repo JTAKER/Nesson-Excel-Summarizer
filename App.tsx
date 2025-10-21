@@ -45,9 +45,9 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
+    <div className="min-h-screen text-slate-800 dark:text-slate-200">
       <Header />
-      <main className="p-4 md:p-8">
+      <main className="p-4 md:p-8 pt-18 md:pt-20">
         {!isProcessing && !processedData && !error && (
             <FileSelector onFilesSelected={handleFilesSelected} />
         )}
@@ -68,7 +68,7 @@ const App: React.FC = () => {
         )}
       </main>
       <div className="fixed bottom-4 right-4 text-xs text-slate-300 dark:text-slate-700 font-mono select-none">
-        v1.0
+        v1.1
       </div>
     </div>
   );

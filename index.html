@@ -20,9 +20,28 @@
         /* Increase base font size from 16px to 17px to make everything slightly larger */
         font-size: 17px;
       }
+      @keyframes gradient-animation {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      body {
+        --gradient-light: linear-gradient(-45deg, #e0eafc, #eef2f3, #f0f4f7, #d9e2ec);
+        --gradient-dark: linear-gradient(-45deg, #232526, #414345, #2c3e50, #34495e);
+        
+        background-size: 200% 200%;
+        animation: gradient-animation 30s ease infinite;
+        background-image: var(--gradient-light);
+        transition: background-image 0.5s ease-in-out;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-image: var(--gradient-dark);
+        }
+      }
     </style>
 </head>
-  <body class="bg-slate-50 dark:bg-slate-900">
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

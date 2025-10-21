@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface ErrorDisplayProps {
@@ -9,7 +8,7 @@ interface ErrorDisplayProps {
 export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message, onReset }) => {
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-            <div className="max-w-2xl p-8 bg-red-50 dark:bg-red-900/20 rounded-2xl shadow-lg border border-red-200 dark:border-red-800">
+            <div className="max-w-2xl p-8 bg-red-50/70 dark:bg-red-900/50 backdrop-blur-lg rounded-2xl shadow-lg border border-red-200 dark:border-red-800">
                 <div className="flex justify-center mb-4">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

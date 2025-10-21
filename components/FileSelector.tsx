@@ -19,7 +19,7 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ onFilesSelected }) =
 
   return (
     <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-      <div className="max-w-2xl p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
+      <div className="max-w-2xl p-8 bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
         <div className="flex justify-center mb-6">
            <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />

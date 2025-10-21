@@ -34,6 +34,240 @@ const SortableHeader: React.FC<{
   );
 };
 
+const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
+    const analysisDate = new Date().toLocaleString(undefined, {
+      year: 'numeric', month: 'long', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    const colWidths = {
+        partNumber: 150,
+        tier: 100,
+        totalQty: 120,
+    };
+
+    const tableHeaders = ['Part Number', 'Tier', 'Total Quantity', 'Description', ...fileIds];
+    
+    const headerHtml = tableHeaders.map((h, index) => {
+        let classes = '';
+        if (index < 3) classes += ` sticky-col sticky-col-${index + 1}`;
+        if (index === 2) classes += ' sticky-col-last';
+        return `<th class="${classes.trim()}" onclick="sortTable(${index})">${h}</th>`;
+    }).join('');
+
+    const rowsHtml = parts.map(part => {
+        interface Cell {
+            content: any;
+            isSticky: boolean;
+            isLastSticky?: boolean;
+            col?: number;
+            className?: string;
+        }
+
+        const cells: Cell[] = [
+            { content: part.partNumber, isSticky: true, isLastSticky: false, col: 1 },
+            { content: `<span class="tier tier-${part.tier.replace(' ', '')}">${part.tier}</span>`, isSticky: true, isLastSticky: false, col: 2 },
+            { content: `<strong>${part.total_quantity}</strong>`, isSticky: true, isLastSticky: true, col: 3, className: 'num' },
+            { content: part.description || '', isSticky: false },
+            ...fileIds.map(fileId => ({ content: part.file_quantities[fileId] || 0, isSticky: false, className: 'num' }))
+        ];
+        
+        const cellHtml = cells.map((cell) => {
+            let classes = cell.className || '';
+            if (cell.isSticky && cell.col !== undefined) {
+                classes += ` sticky-col sticky-col-${cell.col}`;
+                if (cell.isLastSticky) {
+                    classes += ' sticky-col-last';
+                }
+            }
+            return `<td class="${classes.trim()}">${cell.content}</td>`;
+        }).join('');
+
+        return `<tr>${cellHtml}</tr>`;
+    }).join('');
+
+    const css = `
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            margin: 2rem; 
+            background-color: #ffffff; 
+            color: #111827;
+            line-height: 1.5;
+        }
+        @media (prefers-color-scheme: dark) {
+            body { 
+                background-color: #1f2937;
+                color: #d1d5db;
+            }
+            .table-wrapper { border-color: #4b5563; }
+            th, td { border-color: #4b5563; }
+            thead { background-color: #374151; }
+            tbody tr:nth-child(even) { background-color: #374151; }
+            th:hover { background-color: #4b5563 !important; }
+            .sticky-col-last { border-right-color: #4b5563; }
+            /* Dark mode sticky backgrounds */
+            .sticky-col { background-color: #1f2937; }
+            tr:nth-child(even) .sticky-col { background-color: #374151; }
+            thead .sticky-col { background-color: #374151; }
+            thead .sticky-col:hover { background-color: #4b5563 !important; }
+            .tier-Tier1 { background-color: #78350f; color: #fef3c7; }
+            .tier-Tier2 { background-color: #374151; color: #d1d5db; }
+            tr.selected td, tr.selected .sticky-col { background-color: #263c6b !important; }
+        }
+        h1 { font-size: 2em; margin-bottom: 0.5em; }
+        p { color: #6b7280; margin-bottom: 0.5em; }
+        p.date { margin-bottom: 2em; font-style: italic; font-size: 0.9em; }
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            border-radius: 0.5rem;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+        th, td { 
+            padding: 0.75rem 1rem; 
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            white-space: nowrap;
+            transition: background-color 0.15s ease-in-out;
+        }
+        thead { 
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        th {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s ease-in-out;
+        }
+        th:hover { background-color: #f3f4f6; }
+        tbody tr { cursor: pointer; }
+        tbody tr:nth-child(even) { background-color: #f9fafb; }
+        .num { text-align: center; }
+        .tier { padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 500; border-radius: 9999px; }
+        .tier-Tier1 { background-color: #fef3c7; color: #78350f; }
+        .tier-Tier2 { background-color: #e5e7eb; color: #1f2937; }
+        tr.selected td, tr.selected .sticky-col { background-color: #dbeafe !important; }
+
+        /* --- STICKY COLUMN STYLES --- */
+        .sticky-col {
+            position: sticky;
+            z-index: 1;
+            background-color: #ffffff; /* Default light mode background */
+        }
+        tr:nth-child(even) .sticky-col {
+            background-color: #f9fafb; /* Light mode alternating row */
+        }
+        thead .sticky-col {
+            z-index: 2;
+            background-color: #f9fafb; /* Header background */
+        }
+        thead .sticky-col:hover {
+             background-color: #f3f4f6 !important;
+        }
+        .sticky-col-1 { left: 0px; min-width: ${colWidths.partNumber}px; }
+        .sticky-col-2 { left: ${colWidths.partNumber}px; min-width: ${colWidths.tier}px; }
+        .sticky-col-3 { left: ${colWidths.partNumber + colWidths.tier}px; min-width: ${colWidths.totalQty}px; }
+        .sticky-col-last { border-right: 2px solid #e5e7eb; }
+    `;
+
+    const script = `
+        let sortState = { colIndex: -1, direction: 'ascending' };
+
+        function sortTable(colIndex) {
+            const table = document.querySelector('table');
+            const tbody = table.querySelector('tbody');
+            const headers = Array.from(table.querySelectorAll('thead th'));
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            let direction = 'ascending';
+            if (sortState.colIndex === colIndex) {
+                direction = sortState.direction === 'ascending' ? 'descending' : 'ascending';
+            }
+            
+            sortState = { colIndex, direction };
+
+            rows.sort((a, b) => {
+                const aText = a.children[colIndex].innerText.trim();
+                const bText = b.children[colIndex].innerText.trim();
+
+                const aNum = parseFloat(aText.replace(/,/g, ''));
+                const bNum = parseFloat(bText.replace(/,/g, ''));
+
+                let comparison = 0;
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    comparison = aNum - bNum;
+                } else {
+                    comparison = aText.localeCompare(bText, undefined, { numeric: true, sensitivity: 'base' });
+                }
+                
+                return direction === 'ascending' ? comparison : -comparison;
+            });
+
+            headers.forEach(th => {
+                th.innerHTML = th.innerHTML.replace(/ ▲| ▼/, '');
+            });
+
+            const currentHeader = headers[colIndex];
+            currentHeader.innerHTML += direction === 'ascending' ? ' ▲' : ' ▼';
+            
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        const tbody = document.querySelector('tbody');
+        if (tbody) {
+            let selectedRow = null;
+            tbody.addEventListener('click', (e) => {
+                const row = e.target.closest('tr');
+                if (!row) return;
+
+                if (selectedRow) {
+                    selectedRow.classList.remove('selected');
+                }
+
+                if (selectedRow !== row) {
+                    row.classList.add('selected');
+                    selectedRow = row;
+                } else {
+                    selectedRow = null;
+                }
+            });
+        }
+    `;
+
+    return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>BOM Summary</title>
+            <style>${css}</style>
+        </head>
+        <body>
+            <h1>Analysis Results</h1>
+            <p>Found ${parts.length} unique parts across ${fileIds.length} files.</p>
+            <p class="date">Analysis run on: ${analysisDate}</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>${headerHtml}</tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            </div>
+            <script>${script}<\/script>
+        </body>
+        </html>
+    `;
+};
+
 
 export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'tier', direction: 'ascending' });
@@ -49,7 +283,6 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
   }, []);
   
   const partList = useMemo(() => Object.entries(data.parts).map(([partNumber, partDetails]) => {
-    // FIX: Cast `partDetails` to `PartData` because TypeScript was incorrectly inferring it as `unknown`, which caused property access errors.
     const details = partDetails as PartData;
     return {
       partNumber,
@@ -79,16 +312,11 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
             aValue = a.file_quantities[sortConfig.key] || 0;
             bValue = b.file_quantities[sortConfig.key] || 0;
         } else {
-            // FIX: Explicitly cast sortConfig.key to the known sortable property names.
-            // This prevents TypeScript from inferring that `sortConfig.key` could be 'file_quantities',
-            // which holds an object and would cause a type error. The `if` block above
-            // correctly handles sorting by dynamic fileId columns.
             const key = sortConfig.key as 'partNumber' | 'tier' | 'total_quantity' | 'description';
             aValue = a[key];
             bValue = b[key];
         }
 
-        // Primary sort logic
         let result = 0;
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           result = aValue - bValue;
@@ -98,7 +326,6 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
           result = 0;
         }
 
-        // If primary sort results in a tie, use the default secondary sort
         if (result === 0) {
             if (a.tier === 'Tier 1' && b.tier !== 'Tier 1') return -1;
             if (a.tier !== 'Tier 1' && b.tier === 'Tier 1') return 1;
@@ -139,6 +366,21 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
     link.click();
     document.body.removeChild(link);
   }, [sortedParts, data.fileIds]);
+
+  const handleDownloadHTML = useCallback(() => {
+    const htmlContent = generateHtmlContent(sortedParts, data.fileIds);
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `${dateStr}_BOM_Summary.html`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [sortedParts, data.fileIds]);
   
   const handleRowClick = (partNumber: string) => {
     setSelectedRow(current => current === partNumber ? null : partNumber);
@@ -151,7 +393,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
           <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Analysis Results</h2>
           <p className="text-slate-500 dark:text-slate-400">Found {partList.length} unique parts across {data.fileIds.length} files.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-center">
            <button
             onClick={handleDownload}
             className="flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-all duration-300"
@@ -160,6 +402,15 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
               <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
             Download CSV
+          </button>
+           <button
+            onClick={handleDownloadHTML}
+            className="flex items-center gap-2 bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 transition-all duration-300"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+            Download HTML
           </button>
           <button
             onClick={onReset}
@@ -174,7 +425,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
         </div>
       </div>
       
-      <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 relative max-h-[70vh]">
+      <div className="overflow-x-auto bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 relative max-h-[80vh]">
         <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
           <thead className="text-xs text-slate-700 uppercase bg-slate-100 dark:bg-slate-700 sticky top-0 z-20">
             <tr>
