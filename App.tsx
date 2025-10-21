@@ -67,6 +67,9 @@ const App: React.FC = () => {
           <ResultsTable data={processedData} onReset={handleReset} />
         )}
       </main>
+      <div className="fixed bottom-4 right-4 text-xs text-slate-300 dark:text-slate-700 font-mono select-none">
+        v1.0
+      </div>
     </div>
   );
 };

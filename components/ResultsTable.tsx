@@ -48,10 +48,17 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
     });
   }, []);
   
-  const partList = useMemo(() => Object.entries(data.parts).map(([partNumber, partDetails]) => ({
+  const partList = useMemo(() => Object.entries(data.parts).map(([partNumber, partDetails]) => {
+    // FIX: Cast `partDetails` to `PartData` because TypeScript was incorrectly inferring it as `unknown`, which caused property access errors.
+    const details = partDetails as PartData;
+    return {
       partNumber,
-      ...partDetails,
-    })), [data.parts]);
+      description: details.description,
+      total_quantity: details.total_quantity,
+      file_quantities: details.file_quantities,
+      tier: details.tier,
+    };
+  }), [data.parts]);
 
   const sortedParts = useMemo(() => {
     let sortableItems = [...partList];
@@ -158,8 +165,9 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
             onClick={onReset}
             className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all duration-300"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7V9a1 1 0 01-2 0V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.546A5.002 5.002 0 0014.001 13V11a1 1 0 112 0v6a1 1 0 01-1 1h-6a1 1 0 110-2h2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.546-1.276z" clipRule="evenodd" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 16 16" fill="currentColor">
+                <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
             </svg>
             Process Again
           </button>
