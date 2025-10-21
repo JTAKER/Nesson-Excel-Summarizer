@@ -21,7 +21,7 @@ export const FileSelector: React.FC<FileSelectorProps> = ({ onFilesSelected }) =
     <div className="flex flex-col items-center justify-center h-[60vh] text-center">
       <div className="max-w-2xl p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
         <div className="flex justify-center mb-6">
-          <img src="/logo.png" alt="Nesson CIFA Summarizer Logo" className="h-20 w-auto" />
+          <img src="logo.png" alt="Nesson CIFA Summarizer Logo" className="h-20 w-auto" />
         </div>
         <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-2">Process CIFA Files</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">

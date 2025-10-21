@@ -6,7 +6,7 @@ export const Header: React.FC = () => {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <img src="/logo.png" alt="Nesson Logo" className="h-8 w-auto" />
+            <img src="logo.png" alt="Nesson Logo" className="h-8 w-auto" />
             <span className="ml-3 text-xl font-bold text-slate-800 dark:text-slate-100">Nesson CIFA Summarizer</span>
           </div>
         </div>
