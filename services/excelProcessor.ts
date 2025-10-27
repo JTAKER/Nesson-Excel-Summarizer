@@ -1,5 +1,5 @@
 
-import { type ProcessedData, type PartData, type Tier } from '../types';
+import { type ProcessedData, type PartData, type Tier, type ProgressUpdate } from '../types';
 import { POSSIBLE_SHEET_NAMES, TIER1_PART_NUMBERS, CIFA_COL_INDEX, QTY_COL_INDEX, DESC_COL_INDEX, START_ROW } from '../constants';
 
 // Since SheetJS is loaded from a CDN, we declare it as a global to satisfy TypeScript.
@@ -119,7 +119,7 @@ const processSingleFile = async (file: File): Promise<SingleFileResult> => {
 
 export const processExcelFiles = async (
     files: FileList,
-    onProgress: (message: string) => void
+    onProgress: (update: ProgressUpdate) => void
 ): Promise<ProcessedData> => {
     const excelFiles = Array.from(files).filter(
         file => file.name.endsWith('.xlsx') || file.name.endsWith('.xlsm')
@@ -129,14 +129,21 @@ export const processExcelFiles = async (
       throw new Error("No .xlsx or .xlsm files were found in the selected folder.");
     }
 
-    const allPromises = excelFiles.map((file, index) => {
-        onProgress(`Processing file ${index + 1} of ${excelFiles.length}: ${file.name}`);
-        return processSingleFile(file);
-    });
-    
-    const results = await Promise.all(allPromises);
+    const results: SingleFileResult[] = [];
+    const totalFiles = excelFiles.length;
 
-    onProgress('Merging results...');
+    for (let i = 0; i < totalFiles; i++) {
+        const file = excelFiles[i];
+        const percentage = ((i + 1) / totalFiles) * 95; // Allocate 95% of progress to file processing
+        onProgress({
+            message: `Processing file ${i + 1} of ${totalFiles}: ${file.name}`,
+            percentage: percentage
+        });
+        const result = await processSingleFile(file);
+        results.push(result);
+    }
+
+    onProgress({ message: 'Merging results...', percentage: 98 });
 
     const finalPartData: { [partNumber: string]: PartData } = {};
     const fileIds = new Set<string>();
@@ -168,6 +175,9 @@ export const processExcelFiles = async (
     if (Object.keys(finalPartData).length === 0) {
         throw new Error("No valid BOM data found to summarize across the provided files.");
     }
+    
+    onProgress({ message: 'Analysis complete!', percentage: 100 });
+
 
     return {
         parts: finalPartData,

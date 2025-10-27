@@ -12,3 +12,8 @@ export interface ProcessedData {
   parts: { [partNumber: string]: PartData };
   fileIds: string[];
 }
+
+export interface ProgressUpdate {
+  message: string;
+  percentage: number;
+}

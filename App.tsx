@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { FileSelector } from './components/FileSelector';
 import { ResultsTable } from './components/ResultsTable';
-import { Spinner } from './components/Spinner';
+import { ProgressBar } from './components/ProgressBar';
 import { processExcelFiles } from './services/excelProcessor';
-import { type ProcessedData } from './types';
+import { type ProcessedData, type ProgressUpdate } from './types';
 import { Header } from './components/Header';
 import { ErrorDisplay } from './components/ErrorDisplay';
 
@@ -11,6 +11,7 @@ const App: React.FC = () => {
   const [processedData, setProcessedData] = useState<ProcessedData | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processingMessage, setProcessingMessage] = useState<string>('');
+  const [processingProgress, setProcessingProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -89,10 +90,12 @@ const App: React.FC = () => {
     setError(null);
     setProcessedData(null);
     setProcessingMessage('Starting analysis...');
+    setProcessingProgress(0);
 
     try {
-      const result = await processExcelFiles(files, (message) => {
-        setProcessingMessage(message);
+      const result = await processExcelFiles(files, (update: ProgressUpdate) => {
+        setProcessingMessage(update.message);
+        setProcessingProgress(update.percentage);
       });
       setProcessedData(result);
     } catch (e) {
@@ -102,6 +105,7 @@ const App: React.FC = () => {
     } finally {
       setIsProcessing(false);
       setProcessingMessage('');
+      setProcessingProgress(0);
     }
   }, []);
   
@@ -109,6 +113,7 @@ const App: React.FC = () => {
     setProcessedData(null);
     setError(null);
     setIsProcessing(false);
+    setProcessingProgress(0);
     if (window.location.hash) {
       window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
     }
@@ -123,10 +128,7 @@ const App: React.FC = () => {
         )}
 
         {isProcessing && (
-          <div className="text-center">
-            <Spinner />
-            <p className="mt-4 text-lg font-semibold text-slate-600 dark:text-slate-300 animate-pulse">{processingMessage}</p>
-          </div>
+          <ProgressBar progress={processingProgress} message={processingMessage} />
         )}
 
         {error && (
