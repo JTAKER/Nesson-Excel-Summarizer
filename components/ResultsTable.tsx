@@ -321,7 +321,7 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
                     </tbody>
                 </table>
             </div>
-            <script>${script.replace(/<\/script>/g, '<\\/script>')}<\/script>
+            <script>${script.replace(/<\/script>/g, '<\\/script>')}</script>
         </body>
         </html>
     `;
@@ -332,6 +332,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'tier', direction: 'ascending' });
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
 
   const handleSort = useCallback((key: SortableKeys) => {
     setSortConfig(current => {
@@ -411,6 +412,46 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
     return sortableItems;
   }, [filteredParts, sortConfig, data.fileIds]);
   
+  const handleShare = useCallback(() => {
+    try {
+      const jsonString = JSON.stringify(data);
+
+      // btoa() fails on strings containing characters outside of the Latin1 range.
+      // This helper function correctly encodes a UTF-8 string to Base64 by handling Unicode.
+      const utf8ToB64 = (str: string) => {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+          (match, p1) => String.fromCharCode(parseInt(p1, 16))
+        ));
+      };
+      
+      const base64Encoded = utf8ToB64(jsonString);
+      // The Base64 string itself needs to be URL-encoded to handle characters like '+' and '/'.
+      const encodedData = encodeURIComponent(base64Encoded);
+      const url = `${window.location.origin}${window.location.pathname}#data=${encodedData}`;
+
+      if (url.length > 4000) {
+          alert(
+              "Warning: The generated share link is very long and may not work in all browsers or applications.\n\n" +
+              "For large datasets like this one, downloading the HTML report is the most reliable way to share your analysis."
+          );
+      }
+
+      navigator.clipboard.writeText(url).then(() => {
+        setCopyStatus('copied');
+        setTimeout(() => setCopyStatus('idle'), 2500);
+      }).catch(err => {
+        console.error('Failed to copy link: ', err);
+        setCopyStatus('error');
+        setTimeout(() => setCopyStatus('idle'), 2500);
+      });
+    } catch (e) {
+        console.error('Failed to generate share link: ', e);
+        alert('An error occurred while generating the share link.');
+        setCopyStatus('error');
+        setTimeout(() => setCopyStatus('idle'), 2500);
+    }
+  }, [data]);
+
   const handleDownload = useCallback(() => {
     const headers = ['Part Number', 'Tier', 'Total Quantity', 'Description', ...data.fileIds];
     const csvRows = [headers.join(',')];
@@ -457,6 +498,14 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
   const handleRowClick = (partNumber: string) => {
     setSelectedRow(current => current === partNumber ? null : partNumber);
   };
+  
+  const getShareButtonText = () => {
+    switch(copyStatus) {
+        case 'copied': return 'Link Copied!';
+        case 'error': return 'Copy Failed!';
+        default: return 'Share Analysis';
+    }
+  };
 
   return (
     <div className="animate-fade-in">
@@ -487,6 +536,18 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
                 />
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
+             <button
+                onClick={handleShare}
+                className={`flex items-center gap-2 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-4 transition-all duration-300 ${
+                    copyStatus === 'idle' ? 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-300 dark:focus:ring-indigo-800' :
+                    copyStatus === 'copied' ? 'bg-green-600' : 'bg-red-600'
+                }`}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                </svg>
+                {getShareButtonText()}
+            </button>
             <button
                 onClick={handleDownload}
                 className="flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-all duration-300"
