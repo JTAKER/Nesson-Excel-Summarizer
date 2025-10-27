@@ -412,22 +412,31 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
     return sortableItems;
   }, [filteredParts, sortConfig, data.fileIds]);
   
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     try {
       const jsonString = JSON.stringify(data);
 
-      // btoa() fails on strings containing characters outside of the Latin1 range.
-      // This helper function correctly encodes a UTF-8 string to Base64 by handling Unicode.
-      const utf8ToB64 = (str: string) => {
-        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
-          (match, p1) => String.fromCharCode(parseInt(p1, 16))
-        ));
+      // 1. Compress the JSON string using the browser's native CompressionStream API
+      const stream = new Blob([jsonString], { type: 'application/json' }).stream();
+      const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+      const compressedBlob = await new Response(compressedStream).blob();
+      const compressedBuffer = await compressedBlob.arrayBuffer();
+
+      // 2. Convert the compressed binary data (ArrayBuffer) to a Base64 string
+      const bufferToBase64 = (buffer: ArrayBuffer) => {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
       };
+
+      const base64Encoded = bufferToBase64(compressedBuffer);
       
-      const base64Encoded = utf8ToB64(jsonString);
-      // The Base64 string itself needs to be URL-encoded to handle characters like '+' and '/'.
+      // 3. Create the URL with the compressed data
       const encodedData = encodeURIComponent(base64Encoded);
-      const url = `${window.location.origin}${window.location.pathname}#data=${encodedData}`;
+      const url = `${window.location.origin}${window.location.pathname}#data-gz=${encodedData}`;
 
       if (url.length > 4000) {
           alert(
