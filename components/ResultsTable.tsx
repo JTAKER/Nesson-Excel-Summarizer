@@ -590,7 +590,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
       
       <div className="overflow-x-auto bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 relative max-h-[80vh]">
         <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-          <thead className="text-xs text-slate-700 uppercase bg-slate-100 dark:bg-slate-700 sticky top-0 z-20">
+          <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-100 dark:bg-slate-700 sticky top-0 z-20">
             <tr>
                 <SortableHeader columnKey="partNumber" title="Part Number" sortConfig={sortConfig} onSort={handleSort} className="sticky left-0 z-30 bg-slate-100 dark:bg-slate-700 min-w-[150px]" />
                 <SortableHeader columnKey="tier" title="Tier" sortConfig={sortConfig} onSort={handleSort} className="sticky left-[150px] z-30 bg-slate-100 dark:bg-slate-700 min-w-[100px]" />
