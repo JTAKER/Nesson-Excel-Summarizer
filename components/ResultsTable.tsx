@@ -85,6 +85,8 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
 
         return `<tr>${cellHtml}</tr>`;
     }).join('');
+    
+    const noResultsRowHtml = `<tr id="noResultsRow" style="display:none;"><td colspan="${tableHeaders.length}" style="text-align: center; padding: 2rem; font-style: italic; color: #6b7280;">No parts found matching your search.</td></tr>`;
 
     const css = `
         body { 
@@ -105,7 +107,6 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
             tbody tr:nth-child(even) { background-color: #374151; }
             th:hover { background-color: #4b5563 !important; }
             .sticky-col-last { border-right-color: #4b5563; }
-            /* Dark mode sticky backgrounds */
             .sticky-col { background-color: #1f2937; }
             tr:nth-child(even) .sticky-col { background-color: #374151; }
             thead .sticky-col { background-color: #374151; }
@@ -113,10 +114,24 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
             .tier-Tier1 { background-color: #78350f; color: #fef3c7; }
             .tier-Tier2 { background-color: #374151; color: #d1d5db; }
             tr.selected td, tr.selected .sticky-col { background-color: #263c6b !important; }
+            #searchInput { background-color: #374151; border-color: #4b5563; color: #d1d5db; }
+            .search-icon { color: #6b7280; }
         }
         h1 { font-size: 2em; margin-bottom: 0.5em; }
         p { color: #6b7280; margin-bottom: 0.5em; }
-        p.date { margin-bottom: 2em; font-style: italic; font-size: 0.9em; }
+        p.date { margin-bottom: 1em; font-style: italic; font-size: 0.9em; }
+        .search-container { margin-bottom: 1.5em; position: relative; }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
+        #searchInput {
+            width: 100%;
+            max-width: 400px;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            font-size: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background-color: #ffffff;
+            color: #111827;
+        }
         .table-wrapper {
             overflow-x: auto;
             border: 1px solid #e5e7eb;
@@ -181,7 +196,7 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
             const table = document.querySelector('table');
             const tbody = table.querySelector('tbody');
             const headers = Array.from(table.querySelectorAll('thead th'));
-            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const rows = Array.from(tbody.querySelectorAll('tr:not(#noResultsRow)'));
 
             let direction = 'ascending';
             if (sortState.colIndex === colIndex) {
@@ -214,7 +229,6 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
             const currentHeader = headers[colIndex];
             currentHeader.innerHTML += direction === 'ascending' ? ' ▲' : ' ▼';
             
-            tbody.innerHTML = '';
             rows.forEach(row => tbody.appendChild(row));
         }
 
@@ -223,7 +237,7 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
             let selectedRow = null;
             tbody.addEventListener('click', (e) => {
                 const row = e.target.closest('tr');
-                if (!row) return;
+                if (!row || row.id === 'noResultsRow') return;
 
                 if (selectedRow) {
                     selectedRow.classList.remove('selected');
@@ -237,6 +251,44 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
                 }
             });
         }
+        
+        const searchInput = document.getElementById('searchInput');
+        const summaryText = document.getElementById('summaryText');
+        const allDataRows = Array.from(tbody.querySelectorAll('tr:not(#noResultsRow)'));
+        const noResultsRow = document.getElementById('noResultsRow');
+        const totalParts = allDataRows.length;
+        const totalFiles = ${fileIds.length};
+
+        function filterTable() {
+            const query = searchInput.value.toLowerCase().trim();
+            let visibleRows = 0;
+
+            allDataRows.forEach(row => {
+                const partNumberCell = row.children[0];
+                const descriptionCell = row.children[3];
+                
+                const partNumberText = partNumberCell ? partNumberCell.innerText.toLowerCase() : '';
+                const descriptionText = descriptionCell ? descriptionCell.innerText.toLowerCase() : '';
+
+                const isMatch = partNumberText.includes(query) || descriptionText.includes(query);
+                row.style.display = isMatch ? '' : 'none';
+                if (isMatch) {
+                    visibleRows++;
+                }
+            });
+
+            if (query) {
+                summaryText.innerText = \`Showing \${visibleRows} of \${totalParts} unique parts across \${totalFiles} files.\`;
+            } else {
+                summaryText.innerText = \`Found \${totalParts} unique parts across \${totalFiles} files.\`;
+            }
+
+            if (noResultsRow) {
+                noResultsRow.style.display = visibleRows === 0 ? '' : 'none';
+            }
+        }
+
+        searchInput.addEventListener('input', filterTable);
     `;
 
     return `
@@ -250,8 +302,14 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
         </head>
         <body>
             <h1>Analysis Results</h1>
-            <p>Found ${parts.length} unique parts across ${fileIds.length} files.</p>
+            <p id="summaryText">Found ${parts.length} unique parts across ${fileIds.length} files.</p>
             <p class="date">Analysis run on: ${analysisDate}</p>
+            <div class="search-container">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                </svg>
+                <input type="search" id="searchInput" placeholder="Search by Part # or Description...">
+            </div>
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -259,10 +317,11 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
                     </thead>
                     <tbody>
                         ${rowsHtml}
+                        ${noResultsRowHtml}
                     </tbody>
                 </table>
             </div>
-            <script>${script}<\/script>
+            <script>${script.replace(/<\/script>/g, '<\\/script>')}<\/script>
         </body>
         </html>
     `;
@@ -272,6 +331,7 @@ const generateHtmlContent = (parts: any[], fileIds: string[]): string => {
 export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'tier', direction: 'ascending' });
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSort = useCallback((key: SortableKeys) => {
     setSortConfig(current => {
@@ -292,9 +352,21 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
       tier: details.tier,
     };
   }), [data.parts]);
+  
+  const filteredParts = useMemo(() => {
+    const lowercasedQuery = searchQuery.toLowerCase().trim();
+    if (!lowercasedQuery) {
+      return partList;
+    }
+    return partList.filter(part => {
+      const partNumberMatch = part.partNumber.toLowerCase().includes(lowercasedQuery);
+      const descriptionMatch = part.description?.toLowerCase().includes(lowercasedQuery);
+      return partNumberMatch || descriptionMatch;
+    });
+  }, [partList, searchQuery]);
 
   const sortedParts = useMemo(() => {
-    let sortableItems = [...partList];
+    let sortableItems = [...filteredParts];
     
     // Default secondary sort
     sortableItems.sort((a, b) => {
@@ -337,7 +409,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
     }
 
     return sortableItems;
-  }, [partList, sortConfig, data.fileIds]);
+  }, [filteredParts, sortConfig, data.fileIds]);
   
   const handleDownload = useCallback(() => {
     const headers = ['Part Number', 'Tier', 'Total Quantity', 'Description', ...data.fileIds];
@@ -388,42 +460,63 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Analysis Results</h2>
-          <p className="text-slate-500 dark:text-slate-400">Found {partList.length} unique parts across {data.fileIds.length} files.</p>
+        <div className="mb-4">
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Analysis Results</h2>
+            <p className="text-slate-500 dark:text-slate-400">
+            {searchQuery.trim()
+                ? `Showing ${sortedParts.length} of ${partList.length} unique parts`
+                : `Found ${partList.length} unique parts`}{' '}
+            across {data.fileIds.length} files.
+            </p>
         </div>
-        <div className="flex flex-wrap gap-2 justify-center">
-           <button
-            onClick={handleDownload}
-            className="flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-all duration-300"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-            Download CSV
-          </button>
-           <button
-            onClick={handleDownloadHTML}
-            className="flex items-center gap-2 bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 transition-all duration-300"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-            Download HTML
-          </button>
-          <button
-            onClick={onReset}
-            className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all duration-300"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 16 16" fill="currentColor">
-                <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
-                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
-            </svg>
-            Process Again
-          </button>
+
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div className="relative w-full md:w-auto">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                    </svg>
+                </div>
+                <input
+                    type="search"
+                    placeholder="Search by Part # or Description..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full md:w-80 pl-10 pr-4 py-2 border rounded-lg bg-white/70 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-slate-400 dark:placeholder-slate-500"
+                    aria-label="Search parts"
+                />
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+            <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-all duration-300"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Download CSV
+            </button>
+            <button
+                onClick={handleDownloadHTML}
+                className="flex items-center gap-2 bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 transition-all duration-300"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Download HTML
+            </button>
+            <button
+                onClick={onReset}
+                className="flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all duration-300"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 16 16" fill="currentColor">
+                    <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+                </svg>
+                Process Again
+            </button>
+            </div>
         </div>
-      </div>
       
       <div className="overflow-x-auto bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 relative max-h-[80vh]">
         <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
@@ -439,29 +532,37 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
             </tr>
           </thead>
           <tbody className='divide-y divide-slate-200 dark:divide-slate-700'>
-            {sortedParts.map((part) => (
-              <tr 
-                key={part.partNumber}
-                onClick={() => handleRowClick(part.partNumber)}
-                className={`bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors duration-150
-                    ${selectedRow === part.partNumber ? '!bg-blue-100 dark:!bg-blue-800/50' : ''}`
-                }
-              >
-                <td className="px-4 py-3 font-medium text-slate-900 dark:text-white whitespace-nowrap sticky left-0 z-10 bg-inherit">{part.partNumber}</td>
-                <td className="px-4 py-3 sticky left-[150px] z-10 bg-inherit">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${part.tier === 'Tier 1' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-slate-200 text-slate-800 dark:bg-slate-600 dark:text-slate-200'}`}>
-                    {part.tier}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-bold text-center sticky left-[250px] z-10 bg-inherit border-r-2 border-slate-300 dark:border-slate-600">{part.total_quantity}</td>
-                <td className="px-4 py-3 min-w-[250px] max-w-[400px] truncate" title={part.description || ''}>{part.description}</td>
-                {data.fileIds.map(fileId => (
-                  <td key={fileId} className="px-4 py-3 text-center">
-                    {part.file_quantities[fileId] || 0}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {sortedParts.length > 0 ? (
+                sortedParts.map((part) => (
+                <tr 
+                    key={part.partNumber}
+                    onClick={() => handleRowClick(part.partNumber)}
+                    className={`bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors duration-150
+                        ${selectedRow === part.partNumber ? '!bg-blue-100 dark:!bg-blue-800/50' : ''}`
+                    }
+                >
+                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white whitespace-nowrap sticky left-0 z-10 bg-inherit">{part.partNumber}</td>
+                    <td className="px-4 py-3 sticky left-[150px] z-10 bg-inherit">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${part.tier === 'Tier 1' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-slate-200 text-slate-800 dark:bg-slate-600 dark:text-slate-200'}`}>
+                        {part.tier}
+                    </span>
+                    </td>
+                    <td className="px-4 py-3 font-bold text-center sticky left-[250px] z-10 bg-inherit border-r-2 border-slate-300 dark:border-slate-600">{part.total_quantity}</td>
+                    <td className="px-4 py-3 min-w-[250px] max-w-[400px] truncate" title={part.description || ''}>{part.description}</td>
+                    {data.fileIds.map(fileId => (
+                    <td key={fileId} className="px-4 py-3 text-center">
+                        {part.file_quantities[fileId] || 0}
+                    </td>
+                    ))}
+                </tr>
+                ))
+            ) : (
+                <tr>
+                    <td colSpan={data.fileIds.length + 4} className="text-center py-8 text-slate-500 dark:text-slate-400">
+                        No parts found matching your search criteria.
+                    </td>
+                </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { FileSelector } from './components/FileSelector';
 import { ResultsTable } from './components/ResultsTable';
@@ -68,7 +67,7 @@ const App: React.FC = () => {
         )}
       </main>
       <div className="fixed bottom-4 right-4 text-xs text-slate-300 dark:text-slate-700 font-mono select-none">
-        v1.1
+        v1.2
       </div>
     </div>
   );
