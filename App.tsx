@@ -140,7 +140,7 @@ const App: React.FC = () => {
         )}
       </main>
       <div className="fixed bottom-4 right-4 text-xs text-slate-300 dark:text-slate-700 font-mono select-none">
-        v1.3
+        v1.35
       </div>
     </div>
   );
