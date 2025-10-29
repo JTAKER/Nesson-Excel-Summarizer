@@ -464,7 +464,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
   const handleDownload = useCallback(() => {
     const headers = ['Part Number', 'Tier', 'Total Quantity', 'Description', ...data.fileIds];
     const csvRows = [headers.join(',')];
-    for (const part of sortedParts) {
+    // Use the full partList for export, not the sorted/filtered view
+    for (const part of partList) {
       const row = [
         `"${part.partNumber.replace(/"/g, '""')}"`,
         part.tier,
@@ -487,10 +488,11 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [sortedParts, data.fileIds]);
+  }, [partList, data.fileIds]);
 
   const handleDownloadHTML = useCallback(() => {
-    const htmlContent = generateHtmlContent(sortedParts, data.fileIds);
+    // Use the full partList for export, not the sorted/filtered view
+    const htmlContent = generateHtmlContent(partList, data.fileIds);
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
     const link = document.createElement('a');
     
@@ -502,7 +504,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ data, onReset }) => 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [sortedParts, data.fileIds]);
+  }, [partList, data.fileIds]);
   
   const handleRowClick = (partNumber: string) => {
     setSelectedRow(current => current === partNumber ? null : partNumber);
